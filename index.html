@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Чек"><meta name="theme-color" content="#10332c"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png">
+<title>Карманный чек</title>
+
+<style>
+/* Layout: an iPhone-native stack: deep green balance card, one capture field, inset grouped lists, tab bar under the thumb. */
+:root {
+  --bg: #f2f3f1; --card: #ffffff; --ink: #14181a; --soft: #6c7572; --hair: #e4e6e2; --accent: #0d7a5f; --on-accent: #ffffff; --tint: #e3f2ed; --warn: #c2492a;
+  --hero: #10332c; --hero-ink: #f3f8f5; --hero-soft: #a9c6bb; --hero-bar: #3f7f6c; --hero-top: #8ee6c4;
+  --ghost: #b7bfbb; --bar: #f8f9f7ee;
+  --wall: #e9dcc6; --roof: #c5533a; --wood: #8a5a3a; --glass: #8fc7dc; --grass: #7fb56a; --sun: #f2b63e; --metal: #4c5659; --paint: #d8452f; --road: #5b6366;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", Roboto, "Segoe UI", sans-serif;
+  --round: ui-rounded, "SF Pro Rounded", -apple-system, Roboto, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0c0f0e; --card: #171b1a; --ink: #eef2f0; --soft: #8e9895; --hair: #262c2a; --accent: #4fd0a8; --on-accent: #05130e; --tint: #16322a; --warn: #f0875f;
+  --hero: #143a31; --hero-ink: #f3f8f5; --hero-soft: #a9c6bb; --hero-bar: #3f7f6c; --hero-top: #8ee6c4;
+  --ghost: #4a5451; --bar: #141817ee; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0c0f0e; --card: #171b1a; --ink: #eef2f0; --soft: #8e9895; --hair: #262c2a; --accent: #4fd0a8; --on-accent: #05130e; --tint: #16322a; --warn: #f0875f;
+  --hero: #143a31; --hero-ink: #f3f8f5; --hero-soft: #a9c6bb; --hero-bar: #3f7f6c; --hero-top: #8ee6c4;
+  --ghost: #4a5451; --bar: #141817ee; color-scheme: dark; }
+[hidden] { display: none !important; }
+* { -webkit-tap-highlight-color: transparent; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.35 var(--font); }
+#app { max-width: 560px; margin: 0 auto; box-sizing: border-box; padding-block: 12px calc(env(safe-area-inset-bottom, 0px) + 92px); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 14px; }
+.num { font-family: var(--round); font-variant-numeric: tabular-nums; }
+#hero { background: var(--hero); color: var(--hero-ink); border-radius: 22px; padding: 18px; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+#hero small { display: block; color: var(--hero-soft); font-size: 13px; margin-bottom: 2px; }
+#totalN { font: 700 36px/1.05 var(--round); letter-spacing: -.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#heroSub { color: var(--hero-soft); font-size: 13px; margin-top: 6px; }
+#week { display: flex; align-items: flex-end; gap: 5px; height: 62px; }
+#week div { width: 11px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; gap: 4px; font-size: 9px; color: var(--hero-soft); }
+#week i { display: block; width: 100%; min-height: 3px; background: var(--hero-bar); border-radius: 4px; }
+#week .now i { background: var(--hero-top); }
+#add { display: flex; align-items: center; gap: 6px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 6px); z-index: 3; background: var(--card); border-radius: 18px; padding: 6px 6px 6px 16px; box-shadow: 0 1px 2px #0000000f, 0 8px 22px #0000000f; }
+#say { flex: 1; min-width: 0; height: 44px; border: 0; background: none; color: var(--ink); font: 17px var(--font); outline: none; }
+#say::placeholder { color: var(--soft); }
+#add button { height: 44px; border: 0; border-radius: 13px; flex: none; }
+#mic { width: 44px; background: var(--tint); color: var(--accent); display: grid; place-items: center; }
+#mic.on { background: var(--warn); color: #fff; }
+#send { width: 44px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+#tip { color: var(--soft); font-size: 13px; padding-inline: 4px; }
+.group { background: var(--card); border-radius: 18px; overflow: hidden; }
+.sec { display: flex; justify-content: space-between; gap: 12px; color: var(--soft); font-size: 13px; font-weight: 600; padding: 2px 6px 6px; }
+.sec b { font-weight: 600; font-family: var(--round); font-variant-numeric: tabular-nums; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.row { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 9px 14px; background: none; border: 0; color: var(--ink); text-align: left; font: inherit; }
+.row + .row::before, .rowwrap + .rowwrap::before { content: ""; position: absolute; top: 0; left: 62px; right: 0; height: 1px; background: var(--hair); }
+.rowwrap { position: relative; display: flex; align-items: center; }
+.rowwrap .row { flex: 1; min-width: 0; padding-left: 8px; }
+.ico { width: 36px; height: 36px; border-radius: 11px; flex: none; display: grid; place-items: center; color: #fff; }
+.grow { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 500; }
+.grow small { display: block; color: var(--soft); font-size: 12px; font-weight: 400; margin-top: 1px; }
+.amt { font: 600 16px var(--round); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.amt.none { color: var(--warn); font: 600 13px var(--font); }
+.tick { width: 28px; height: 28px; margin-left: 14px; flex: none; border: 2px solid var(--ghost); border-radius: 50%; background: none; padding: 0; }
+.tick:active { background: var(--accent); border-color: var(--accent); }
+.cat { padding: 12px 14px; display: grid; grid-template-columns: 36px 1fr; gap: 4px 12px; align-items: center; }
+.cat + .cat { border-top: 1px solid var(--hair); }
+.cat .line { display: flex; justify-content: space-between; gap: 10px; font-weight: 500; }
+.cat small { color: var(--soft); font-weight: 400; margin-left: 6px; }
+.bar { height: 6px; background: var(--hair); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.empty { background: var(--card); border-radius: 18px; color: var(--soft); padding: 22px 18px; }
+.empty b { color: var(--ink); display: block; margin-bottom: 8px; font: 700 19px var(--round); }
+.empty span { display: block; padding: 3px 0; }
+.empty span::before { content: "«"; } .empty span::after { content: "»"; }
+.goal { background: var(--card); border-radius: 22px; padding: 14px; display: grid; gap: 10px; }
+.goal svg { display: block; width: 100%; height: auto; border-radius: 14px; background: var(--tint); }
+.part { transition: opacity .3s; }
+.part.off * { fill: none !important; stroke: var(--ghost); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.part.new { animation: pop .7s cubic-bezier(.2, 1.5, .4, 1) both; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes pop { from { opacity: 0; transform: translateY(10px) scale(.92); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .part.new { animation: none; } }
+.ghead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.ghead b { font: 700 19px var(--round); overflow-wrap: anywhere; min-width: 0; }
+.ghead span { font: 700 19px var(--round); color: var(--accent); }
+.gsub { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; color: var(--soft); font-size: 13px; font-variant-numeric: tabular-nums; }
+.gadd { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; }
+.gadd input { min-width: 0; height: 44px; box-sizing: border-box; border: 0; border-radius: 12px; padding-inline: 12px; background: var(--bg); color: var(--ink); font: 16px var(--font); }
+.gadd button, .ghost { min-height: 44px; border-radius: 12px; border: 0; padding-inline: 12px; font: 600 14px var(--font); }
+.gadd .in { background: var(--accent); color: var(--on-accent); }
+.gadd .out, .ghost { background: var(--tint); color: var(--accent); }
+.ghost { width: 100%; }
+.mini { display: flex; gap: 8px; flex-wrap: wrap; }
+.mini button { flex: 1 1 130px; min-height: 40px; border-radius: 11px; border: 0; background: none; color: var(--soft); font: 500 13px var(--font); }
+#tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; display: flex; justify-content: center; background: var(--bar); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); border-top: 1px solid var(--hair); padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 6px) max(8px, env(safe-area-inset-left, 0px)); }
+#tabs button { flex: 1; max-width: 140px; min-height: 50px; border: 0; background: none; color: var(--soft); font: 500 11px var(--font); display: grid; justify-items: center; gap: 2px; align-content: center; }
+#tabs button[aria-selected="true"] { color: var(--accent); }
+.sheet { position: fixed; inset: 0; background: #0009; display: flex; align-items: flex-end; justify-content: center; z-index: 6; }
+.sheet form { width: 100%; max-width: 560px; box-sizing: border-box; background: var(--card); border-radius: 22px 22px 0 0; padding: 18px max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); display: grid; gap: 12px; }
+.sheet h2 { margin: 0; font: 700 20px var(--round); }
+.sheet label { display: grid; gap: 4px; font-size: 13px; color: var(--soft); }
+.sheet input, .sheet select, .sheet textarea { box-sizing: border-box; height: 46px; border: 0; border-radius: 12px; padding-inline: 12px; font: 17px var(--font); background: var(--bg); color: var(--ink); width: 100%; min-width: 0; }
+.sheet textarea { height: 110px; padding-block: 10px; font-size: 13px; }
+.acts { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.acts button { min-height: 48px; border-radius: 13px; border: 0; background: var(--bg); color: var(--ink); font: 600 15px var(--font); }
+.acts .pri { background: var(--accent); color: var(--on-accent); }
+.acts .del { color: var(--warn); }
+.pick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pick button { min-height: 48px; border-radius: 12px; border: 2px solid transparent; background: var(--bg); color: var(--ink); font: 600 15px var(--font); }
+.pick button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+#toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 76px); transform: translateX(-50%); width: min(92vw, 520px); box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 14px; z-index: 5; font-size: 15px; }
+#toast span { min-width: 0; overflow-wrap: anywhere; }
+#toast button { border: 0; background: none; color: inherit; font: 700 14px var(--font); min-height: 36px; flex: none; opacity: .85; }
+button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<main id="app">
+  <section id="hero" aria-label="Траты за месяц">
+    <div><small id="monthName">За месяц</small><div id="totalN">0 ₽</div><div id="heroSub"></div></div>
+    <div id="week" aria-hidden="true"></div>
+  </section>
+  <form id="add" autocomplete="off">
+    <input id="say" type="text" enterkeyhint="done" placeholder="Молоко 120" aria-label="Что купили и сколько">
+    <button id="mic" type="button" aria-label="Сказать голосом" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    <button id="send" type="submit" aria-label="Записать"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+  </form>
+  <div id="tip">Нажмите на поле и на микрофон клавиатуры. Скажите: «хлеб 60», «план шины 15000» или «в копилку 5000».</div>
+  <section id="list" class="stack"></section>
+</main>
+
+<nav id="tabs" role="tablist">
+  <button role="tab" data-t="spend" aria-selected="true"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg>Траты</button>
+  <button role="tab" data-t="plan" aria-selected="false"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Планы</button>
+  <button role="tab" data-t="goal" aria-selected="false"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7M6 9v11h12V9M10 20v-6h4v6"/></svg>Копилка</button>
+  <button role="tab" data-t="sum" aria-selected="false"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-7M12 20V5M19 20v-11"/></svg>Итоги</button>
+</nav>
+
+<div id="sheet" class="sheet" hidden>
+  <form id="form">
+    <h2>Запись</h2>
+    <label>Название <input id="fTitle" type="text"></label>
+    <label>Сумма, ₽ <input id="fAmt" type="number" inputmode="decimal" min="0" step="any"></label>
+    <label>Категория <select id="fCat"></select></label>
+    <label>Раздел <select id="fKind"><option value="spend">Траты</option><option value="plan">Планы</option></select></label>
+    <div class="acts"><button type="button" class="del" id="fDel">Удалить</button><button type="button" id="fCancel">Отмена</button><button type="submit" class="pri">Сохранить</button></div>
+  </form>
+</div>
+<div id="gSheet" class="sheet" hidden>
+  <form id="gForm">
+    <h2 id="gHead">Новая цель</h2>
+    <label>На что копим <input id="gTitle" type="text" placeholder="Дом у озера" required></label>
+    <label>Сколько нужно, ₽ <input id="gTarget" type="number" inputmode="numeric" min="1" step="any" required></label>
+    <div class="pick"><button type="button" id="pHouse" aria-pressed="true">Дом</button><button type="button" id="pCar" aria-pressed="false">Машина</button></div>
+    <div class="acts"><button type="button" class="del" id="gDel" hidden>Удалить</button><button type="button" id="gCancel">Отмена</button><button type="submit" class="pri">Сохранить</button></div>
+  </form>
+</div>
+<div id="rSheet" class="sheet" hidden>
+  <form id="rForm">
+    <h2>Восстановить копилку</h2>
+    <label>Вставьте сохранённую копию <textarea id="rText"></textarea></label>
+    <div class="acts"><button type="button" id="rCancel">Отмена</button><button type="submit" class="pri">Восстановить</button></div>
+  </form>
+</div>
+<div id="toast" hidden role="status"><span id="toastT"></span><button id="toastU" type="button">Отменить</button></div>
+
+<script>
+// --- Разбор фразы: сумма, тип, категория, дата ---
+const NUM = { ноль:0, один:1, одна:1, одну:1, два:2, две:2, три:3, четыре:4, пять:5, шесть:6, семь:7, восемь:8, девять:9, десять:10, одиннадцать:11, двенадцать:12, тринадцать:13, четырнадцать:14, пятнадцать:15, шестнадцать:16, семнадцать:17, восемнадцать:18, девятнадцать:19, двадцать:20, тридцать:30, сорок:40, пятьдесят:50, шестьдесят:60, семьдесят:70, восемьдесят:80, девяносто:90, сто:100, двести:200, триста:300, четыреста:400, пятьсот:500, шестьсот:600, семьсот:700, восемьсот:800, девятьсот:900 };
+const THOUS = /^(тысяч[аиу]?|тыс|косар[ьяей]*|штук[аи]?)$/, MILL = /^(миллион(а|ов)?|лям(а|ов)?)$/;
+const CUR = /^(руб(л(ь|я|ей))?|р|₽|рублика|рублей)$/, UNIT = /^(кг|кило|г|гр|грамм(а|ов)?|литр(а|ов)?|л|шт|штук|пачк[аиу]|пачек|пакет(а|ов)?|бутыл(ка|ки|ок)|банк[аи]|раз(а)?|дн(я|ей)|день|час(а|ов)?)$/;
+const CATS = [
+  ['Продукты', /молок|хлеб|сыр|мяс|кур[иа]|яйц|овощ|фрукт|яблок|банан|картош|картоф|(^|\s)рис|макарон|чай|кофе|сахар|масл|кефир|йогурт|колбас|рыб|продукт|магазин|пятероч|магнит|перекрест|вкусвилл|ашан|лент[аеу]|шоколад|печень|(^|\s)вод[аыу](?![а-я])/],
+  ['Кафе', /кафе|ресторан|обед|ужин|завтрак|шаурм|пицц|бургер|суши|кофейн|столов|доставк|вкусно|макдон|латте|капучино/],
+  ['Транспорт', /такси|метро|автобус|проезд|бензин|заправк|парковк|тройк|яндекс го|электричк|поезд|билет на|(^|\s)шин[ыау]?(?![а-я])|машин|автомойк|мойк|запчаст/],
+  ['Дом', /коммунал|квартир|аренд|ремонт|жкх|(^|\s)свет(?![а-я])|интернет|связь|телефон|мебел|посуд|порош|шампун|бумаг/],
+  ['Здоровье', /аптек|лекарств|врач|стоматолог|анализ|витамин|таблет/],
+  ['Одежда', /куртк|обув|кроссовк|джинс|футболк|одежд|ботинк|шапк|носк/],
+  ['Развлечения', /кино|игр[аыу]|подписк|концерт|театр|(^|\s)бар(?![а-я])|пиво|книг|netflix|spotify|steam/],
+  ['Подарки', /подар|цвет[ыо]|букет/],
+];
+const CAT_NAMES = [...CATS.map(c => c[0]), 'Другое'];
+const guessCat = t => { const s = t.toLowerCase().replace(/ё/g, 'е'); for (const [n, r] of CATS) if (r.test(s)) return n; return 'Другое'; };
+const PLAN_RE = /^(план[ыа]?|в план[ыа]?|запланировать|запланируй|запиши в планы)(\s|$)[:\s]*/;
+const PLAN_SOFT = /^(надо|нужно|хочу|купить|накопить|отложить)(\s|$)/;
+const VERB = /^(купил[аи]?|взял[аи]?|потратил[аи]?|заплатил[аи]?|оплатил[аи]?|отдал[аи]?|сходил[аи]?( в)?|трата|расход|надо|нужно|хочу|купить)\s+/;
+const SAVE_RE = /^(в копилку|на копилку|копилка|отложил[аи]?|накопил[аи]?)(\s|$)/;
+
+function tokenize(text) { return text.toLowerCase().replace(/ё/g, 'е').replace(/[ ]/g, ' ').replace(/(\d)\s*(₽|руб\w*)/g, '$1 $2').split(/\s+/).filter(Boolean).map(w => w.replace(/^[«"'(]+|[»"'),.;:!?]+$/g, '')).filter(Boolean); }
+// Находит группы чисел: цифрами, словами и вперемешку («2 тысячи», «сто двадцать», «1 200», «2к»).
+function numberRuns(tk) {
+  const runs = []; let i = 0;
+  while (i < tk.length) {
+    const w = tk[i], dg = w.match(/^(\d+(?:[.,]\d+)?)(к|тыс|т|р|руб|₽)?$/);
+    if (dg || w in NUM || w === 'полторы' || w === 'полтора' || THOUS.test(w) && w !== 'штука' && w !== 'штуки') {
+      let j = i, total = 0, cur = 0, seen = false, cb = false;
+      for (; j < tk.length; j++) {
+        const t = tk[j], d = t.match(/^(\d+(?:[.,]\d+)?)(к|тыс|т|р|руб|₽)?$/);
+        if (d) {
+          if (seen && !(cur > 0 && cur < 1000 && d[1].length === 3 && j === i + 1 && !d[2])) break;
+          const v = parseFloat(d[1].replace(',', '.'));
+          if (seen) cur = cur * 1000 + v; else cur = v;
+          seen = true;
+          if (d[2] === 'к' || d[2] === 'тыс' || d[2] === 'т') { total += cur * 1000; cur = 0; }
+          if (d[2] === 'р' || d[2] === 'руб' || d[2] === '₽') { cb = true; j++; break; }
+        } else if (t in NUM) { cur += NUM[t]; seen = true; }
+        else if (t === 'полторы' || t === 'полтора') { cur = 1.5; seen = true; }
+        else if (THOUS.test(t)) { if (t.startsWith('штук') && !seen) break; total += (cur || 1) * 1000; cur = 0; seen = true; }
+        else if (MILL.test(t)) { total += (cur || 1) * 1e6; cur = 0; seen = true; }
+        else break;
+      }
+      if (seen && j > i) { runs.push({ from: i, to: j, v: total + cur, cur: cb || (j < tk.length && CUR.test(tk[j])), unit: j < tk.length && UNIT.test(tk[j]) }); i = j; continue; }
+    }
+    i++;
+  }
+  return runs;
+}
+function parseOne(text) {
+  let s = text.trim(), kind = 'spend', days = 0;
+  const low = s.toLowerCase().replace(/ё/g, 'е');
+  const m = low.match(PLAN_RE);
+  if (m) { kind = 'plan'; s = s.slice(m[0].length); }
+  else if (PLAN_SOFT.test(low)) kind = 'plan';
+  const tk = tokenize(s), raw = s.replace(/ /g, ' ').split(/\s+/).filter(Boolean).map(w => w.replace(/^[«"'(]+|[»"'),.;:!?]+$/g, '')).filter(Boolean);
+  const drop = new Set();
+  tk.forEach((w, i) => { if (w === 'вчера') { days = 1; drop.add(i); } if (w === 'позавчера') { days = 2; drop.add(i); } if (w === 'сегодня') drop.add(i); });
+  const runs = numberRuns(tk).filter(r => !r.unit);
+  let amt = null;
+  const chosen = runs.find(r => r.cur) || runs.find(r => tk[r.from - 1] === 'за') || runs[runs.length - 1];
+  if (chosen) {
+    amt = chosen.v;
+    for (let i = chosen.from; i < chosen.to; i++) drop.add(i);
+    if (chosen.to < tk.length && CUR.test(tk[chosen.to])) drop.add(chosen.to);
+    if (tk[chosen.from - 1] === 'за') drop.add(chosen.from - 1);
+  }
+  let title = raw.filter((_, i) => !drop.has(i) && i < tk.length).join(' ').trim();
+  let lt = title.toLowerCase();
+  while (VERB.test(lt)) { const v = lt.match(VERB)[0].length; title = title.slice(v); lt = title.toLowerCase(); }
+  title = title.replace(/^(на|в|за)\s+(?=\S)/i, '').replace(/\s+(на|за|в)$/i, '').trim();
+  title = title ? title[0].toUpperCase() + title.slice(1) : (amt !== null ? 'Без названия' : '');
+  const d = new Date(); d.setDate(d.getDate() - days);
+  return { kind, title, amount: amt, cat: guessCat(title), ts: days ? d.getTime() : Date.now() };
+}
+// «молоко 120 хлеб 60» и «молоко 120, хлеб 60» становятся двумя записями.
+function parsePhrase(text) {
+  const clean = text.trim(); if (!clean) return [];
+  const byPunct = clean.split(/[;,\n]/).map(s => s.trim()).filter(Boolean);
+  const parts = [];
+  for (const p of byPunct) {
+    const words = p.split(/\s+/), tk = tokenize(p);
+    if (tk.length !== words.length) { parts.push(p); continue; }
+    const runs = numberRuns(tk).filter(r => !r.unit);
+    let start = 0;
+    for (const r of runs) {
+      let end = r.to; if (end < tk.length && CUR.test(tk[end])) end++;
+      // После «на», «за» и «в» фраза продолжается: «потратил 500 на бензин».
+      if (r.from > start && end < tk.length && !/^(на|за|в|для)$/.test(tk[end])) { parts.push(words.slice(start, end).join(' ')); start = end; }
+    }
+    parts.push(words.slice(start).join(' '));
+  }
+  const all = parts.map(p => parseOne(p.replace(/^и\s+/i, ''))).filter(e => e.title);
+  const planFirst = all[0] && all[0].kind === 'plan';
+  if (planFirst) all.forEach(e => e.kind = 'plan');
+  return all;
+}
+window.parsePhrase = parsePhrase;
+
+// --- Хранилище: траты и планы в личной базе страницы, копилка только на этом устройстве ---
+const $ = id => document.getElementById(id);
+const fmt = n => (Math.round(n * 100) / 100).toLocaleString('ru-RU') + ' ₽';
+const dayKey = t => { const d = new Date(t); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); };
+const rid = () => 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+let entries = [], tab = 'spend', col = null, editing = null, undoFn = null, toastT = 0;
+const readLocal = () => { try { return JSON.parse(localStorage.getItem('chek.entries') || '[]'); } catch { return []; } };
+const writeLocal = () => { try { localStorage.setItem('chek.entries', JSON.stringify(entries)); } catch {} };
+async function put(e) {
+  const i = entries.findIndex(x => x.id === e.id); if (i >= 0) entries[i] = e; else entries.push(e);
+  render();
+  if (col) { const { id, ...body } = e; try { await col.doc(id).set(body); } catch (err) { toast('Не сохранилось: ' + (err.code === 'quota_exceeded' ? 'база заполнена, удалите старые записи' : 'нет связи, попробуйте ещё раз')); } }
+  else writeLocal();
+}
+async function drop(id) {
+  entries = entries.filter(x => x.id !== id); render();
+  if (col) { try { await col.doc(id).delete(); } catch { toast('Не удалилось: нет связи'); } } else writeLocal();
+}
+const boot = async () => {
+  entries = readLocal(); render();
+  if (!window.claude) return;
+  const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+  const uid = user && await user.id();
+  if (!db || !uid) return;
+  col = db.collection('data/users/' + uid);
+  const local = entries.slice();
+  const timer = setTimeout(() => { if (!entries.length) toast('Записи пока не загрузились. Новые всё равно можно добавлять.'); }, 10000);
+  let moved = false;
+  col.limit(1000).onSnapshot(snap => {
+    if (!snap.metadata.fromCache) clearTimeout(timer);
+    entries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    render();
+    // Записи, сделанные до загрузки базы, переносим один раз.
+    if (!moved && !snap.metadata.fromCache && local.length) { moved = true; local.forEach(e => { if (!entries.some(x => x.id === e.id)) put(e); }); try { localStorage.removeItem('chek.entries'); } catch {} }
+  }, () => { clearTimeout(timer); toast('Связь с базой потеряна. Перезагрузите страницу.'); });
+};
+
+// --- Копилка ---
+let goals = (() => { try { return JSON.parse(localStorage.getItem('chek.goals') || '[]'); } catch { return []; } })();
+let goalStorageOk = true, shown = {}, editGoal = null, goalArt = 'house';
+const saveGoals = () => { try { localStorage.setItem('chek.goals', JSON.stringify(goals)); goalStorageOk = true; } catch { goalStorageOk = false; toast('Этот браузер не сохраняет копилку. Откройте приложение в Safari не в приватном режиме.'); } };
+const ART = {
+  house: { stages: ['Участок', 'Фундамент', 'Стены', 'Крыша', 'Дверь', 'Окна', 'Труба', 'Забор', 'Дерево', 'Солнце'], parts: [
+    '<rect x="0" y="168" width="320" height="32" fill="var(--grass)"/>',
+    '<rect x="88" y="156" width="144" height="14" rx="2" fill="var(--metal)"/>',
+    '<rect x="96" y="96" width="128" height="60" fill="var(--wall)"/>',
+    '<path d="M84 98 160 46l76 52z" fill="var(--roof)"/>',
+    '<rect x="146" y="118" width="28" height="38" rx="2" fill="var(--wood)"/><circle cx="168" cy="138" r="2" fill="var(--sun)"/>',
+    '<rect x="108" y="108" width="26" height="24" rx="2" fill="var(--glass)"/><rect x="186" y="108" width="26" height="24" rx="2" fill="var(--glass)"/><path d="M121 108v24M199 108v24M108 120h26M186 120h26" stroke="var(--wall)" stroke-width="2"/>',
+    '<rect x="192" y="54" width="14" height="30" fill="var(--metal)"/>',
+    '<path d="M8 150h66M246 150h66M14 142v26M32 142v26M50 142v26M68 142v26M252 142v26M270 142v26M288 142v26M306 142v26" fill="none" stroke="var(--wood)" stroke-width="4"/>',
+    '<rect x="39" y="118" width="8" height="50" fill="var(--wood)"/><circle cx="43" cy="100" r="28" fill="var(--grass)"/>',
+    '<circle cx="272" cy="38" r="20" fill="var(--sun)"/>',
+  ] },
+  car: { stages: ['Дорога', 'Рама', 'Колёса', 'Кузов', 'Кабина', 'Стёкла', 'Двери', 'Фары', 'Бампер', 'Полоска'], parts: [
+    '<rect x="0" y="164" width="320" height="36" fill="var(--road)"/><path d="M16 182h36M84 182h36M152 182h36M220 182h36M288 182h24" stroke="var(--sun)" stroke-width="3"/>',
+    '<rect x="50" y="134" width="220" height="10" rx="3" fill="var(--metal)"/>',
+    '<circle cx="94" cy="146" r="20" fill="var(--metal)"/><circle cx="94" cy="146" r="9" fill="var(--wall)"/><circle cx="226" cy="146" r="20" fill="var(--metal)"/><circle cx="226" cy="146" r="9" fill="var(--wall)"/>',
+    '<path d="M38 136v-20q0-10 12-12l60-8h100q42 2 60 18 8 8 8 22H250a24 24 0 0 0-48 0H118a24 24 0 0 0-48 0z" fill="var(--paint)"/>',
+    '<path d="M104 98q24-40 58-42h34q30 2 50 42z" fill="var(--paint)"/>',
+    '<path d="M120 96q18-30 42-31h12v31zM184 65h10q22 1 38 31h-48z" fill="var(--glass)"/>',
+    '<path d="M178 96v44" fill="none" stroke="var(--roof)" stroke-width="2"/><rect x="150" y="104" width="16" height="4" rx="2" fill="var(--wall)"/><rect x="190" y="104" width="16" height="4" rx="2" fill="var(--wall)"/>',
+    '<rect x="266" y="110" width="22" height="10" rx="4" fill="var(--sun)"/><rect x="36" y="110" width="14" height="10" rx="3" fill="var(--wood)"/>',
+    '<rect x="30" y="128" width="30" height="8" rx="3" fill="var(--metal)"/><rect x="262" y="128" width="28" height="8" rx="3" fill="var(--metal)"/>',
+    '<path d="M46 120h226" fill="none" stroke="var(--wall)" stroke-width="4"/>',
+  ] },
+};
+function deposit(g, amt, undoable = true) {
+  const before = g.saved;
+  g.saved = Math.max(0, Math.round((g.saved + amt) * 100) / 100); saveGoals();
+  const done = before < g.target && g.saved >= g.target;
+  tab = 'goal'; render();
+  toast(done ? `Цель «${g.title}» собрана!` : `${g.title}: ${fmt(g.saved)} из ${fmt(g.target)}`, undoable ? () => { g.saved = before; saveGoals(); render(); } : null);
+}
+function goalCard(g) {
+  const art = ART[g.art] || ART.house, n = art.parts.length, pct = Math.min(1, g.saved / g.target), built = Math.floor(pct * n + 1e-9);
+  const prev = shown[g.id] ?? built; shown[g.id] = built;
+  const c = document.createElement('article'); c.className = 'goal';
+  const parts = art.parts.map((p, i) => `<g class="part${i >= built ? ' off' : i >= prev ? ' new' : ''}">${p}</g>`).join('');
+  c.innerHTML = `<svg viewBox="0 0 320 200" role="img">${parts}</svg>`;
+  c.firstChild.setAttribute('aria-label', `Готово этапов: ${built} из ${n}`);
+  const head = document.createElement('div'); head.className = 'ghead';
+  const t = document.createElement('b'); t.textContent = g.title; const p = document.createElement('span'); p.textContent = Math.floor(pct * 100) + '%'; head.append(t, p);
+  const bar = document.createElement('div'); bar.className = 'bar'; const i = document.createElement('i'); i.style.width = pct * 100 + '%'; bar.append(i);
+  const sub = document.createElement('div'); sub.className = 'gsub';
+  const a = document.createElement('span'); a.textContent = `${fmt(g.saved)} из ${fmt(g.target)}`;
+  const b = document.createElement('span'); b.textContent = built >= n ? 'Построено полностью' : `Дальше: ${art.stages[built].toLowerCase()} · ещё ${fmt(Math.max(0, Math.ceil((built + 1) / n * g.target) - g.saved))}`;
+  sub.append(a, b);
+  const add = document.createElement('form'); add.className = 'gadd';
+  const inp = document.createElement('input'); inp.type = 'number'; inp.inputMode = 'decimal'; inp.min = '0'; inp.step = 'any'; inp.placeholder = 'Сумма'; inp.setAttribute('aria-label', 'Сумма для цели ' + g.title);
+  const plus = document.createElement('button'); plus.className = 'in'; plus.textContent = 'Отложить';
+  const minus = document.createElement('button'); minus.type = 'button'; minus.className = 'out'; minus.textContent = 'Снять';
+  const amt = () => { const v = parseFloat(inp.value.replace(',', '.')); return v > 0 ? v : 0; };
+  add.addEventListener('submit', e => { e.preventDefault(); const v = amt(); if (v) { inp.blur(); deposit(g, v); } });
+  minus.addEventListener('click', () => { const v = amt(); if (v) { inp.blur(); deposit(g, -v); } });
+  add.append(inp, plus, minus);
+  const mini = document.createElement('div'); mini.className = 'mini';
+  const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = 'Изменить цель'; edit.addEventListener('click', () => openGoal(g)); mini.append(edit);
+  c.append(head, bar, sub, add, mini);
+  return c;
+}
+function setArt(a) { goalArt = a; $('pHouse').setAttribute('aria-pressed', a === 'house'); $('pCar').setAttribute('aria-pressed', a === 'car'); }
+function openGoal(g) { editGoal = g || null; $('gHead').textContent = g ? 'Изменить цель' : 'Новая цель'; $('gTitle').value = g ? g.title : ''; $('gTarget').value = g ? g.target : ''; setArt(g ? g.art : 'house'); $('gDel').hidden = !g; $('gSheet').hidden = false; }
+$('pHouse').addEventListener('click', () => setArt('house'));
+$('pCar').addEventListener('click', () => setArt('car'));
+$('gCancel').addEventListener('click', () => { $('gSheet').hidden = true; });
+$('gSheet').addEventListener('click', e => { if (e.target === $('gSheet')) $('gSheet').hidden = true; });
+$('gDel').addEventListener('click', () => { const g = editGoal, i = goals.indexOf(g); goals.splice(i, 1); saveGoals(); $('gSheet').hidden = true; render(); toast(`Цель «${g.title}» удалена`, () => { goals.splice(i, 0, g); saveGoals(); render(); }); });
+$('gForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const title = $('gTitle').value.trim(), target = parseFloat($('gTarget').value);
+  if (!title || !(target > 0)) return;
+  if (editGoal) Object.assign(editGoal, { title, target, art: goalArt }); else goals.push({ id: rid(), title, target, art: goalArt, saved: 0 });
+  saveGoals(); $('gSheet').hidden = true; tab = 'goal'; render();
+});
+function copyBackup() {
+  const text = JSON.stringify(window.claude ? goals : { goals, entries });
+  const fallback = () => { $('rText').value = text; $('rSheet').hidden = false; $('rText').select(); toast('Скопируйте текст вручную и сохраните его в Заметках'); };
+  try { navigator.clipboard.writeText(text).then(() => toast('Копия в буфере. Вставьте её в Заметки.'), fallback); } catch { fallback(); }
+}
+$('rCancel').addEventListener('click', () => { $('rSheet').hidden = true; });
+$('rForm').addEventListener('submit', e => {
+  e.preventDefault();
+  try {
+    const data = JSON.parse($('rText').value), list = Array.isArray(data) ? data : data.goals;
+    // В копии автономной версии лежат ещё и траты с планами.
+    if (Array.isArray(data.entries)) data.entries.filter(x => x && x.id && x.title && x.ts).forEach(x => { if (!entries.some(o => o.id === x.id)) put({ id: String(x.id), kind: x.kind === 'plan' ? 'plan' : 'spend', title: String(x.title), amount: typeof x.amount === 'number' ? x.amount : null, cat: CAT_NAMES.includes(x.cat) ? x.cat : 'Другое', ts: x.ts, done: false }); });
+    if (!Array.isArray(list) || list.some(g => !g.id || !g.title || !(g.target > 0) || typeof g.saved !== 'number')) throw 0;
+    const before = goals; goals = list.map(g => ({ id: String(g.id), title: String(g.title), target: g.target, saved: g.saved, art: g.art === 'car' ? 'car' : 'house' })); saveGoals(); $('rSheet').hidden = true; tab = 'goal'; render();
+    toast('Копилка восстановлена', () => { goals = before; saveGoals(); render(); });
+  } catch { toast('Это не похоже на копию копилки. Проверьте текст.'); }
+});
+
+// --- Экран ---
+const ICONS = {
+  'Продукты': ['#2f9e6b', 'M6 8h12l-1 12H7zM9 8a3 3 0 0 1 6 0'], 'Кафе': ['#d9822b', 'M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5zM16 10h2a2 2 0 0 1 0 5h-2M9 3v3M12 3v3'],
+  'Транспорт': ['#2f74d0', 'M5 16l1.5-6A2 2 0 0 1 8.4 8.5h7.2A2 2 0 0 1 17.5 10L19 16v3H5zM5 16h14M8 19v1M16 19v1'], 'Дом': ['#7a6bd6', 'M4 11l8-7 8 7M6 9.5V20h12V9.5'],
+  'Здоровье': ['#d6455d', 'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.500-7 10-7 10z'], 'Одежда': ['#3aa6b9', 'M9 4 4 7l2 4 2-1v10h8V10l2 1 2-4-5-3a3 3 0 0 1-6 0z'],
+  'Развлечения': ['#c34ea0', 'M5 6h14v12H5zM10 9.500l5 2.500-5 2.500z'], 'Подарки': ['#d55f3e', 'M4 10h16v4H4zM6 14v6h12v-6M12 10v10M12 10S8 9 8 6.500A2 2 0 0 1 12 6.500 2 2 0 0 1 16 6.500C16 9 12 10 12 10z'],
+  'Другое': ['#7b8582', 'M6 12h.01M12 12h.01M18 12h.01'],
+};
+const icon = cat => { const [c, p] = ICONS[cat] || ICONS['Другое']; const d = document.createElement('div'); d.className = 'ico'; d.style.background = c; d.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="${cat === 'Другое' ? 3 : 1.9}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${p}"/></svg>`; return d; };
+function toast(t, undo) {
+  $('toastT').textContent = t; undoFn = undo || null; $('toastU').hidden = !undo; $('toast').hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => { $('toast').hidden = true; undoFn = null; }, undo ? 5000 : 3500);
+}
+$('toastU').addEventListener('click', () => { if (undoFn) undoFn(); $('toast').hidden = true; undoFn = null; });
+function save(text) {
+  const low = text.trim().toLowerCase().replace(/ё/g, 'е');
+  if (SAVE_RE.test(low)) {
+    const open = goals.find(g => g.saved < g.target) || goals[0];
+    const run = numberRuns(tokenize(low)).pop();
+    if (!open) { tab = 'goal'; render(); toast('Сначала создайте цель в копилке'); return true; }
+    if (!run || !(run.v > 0)) { toast('Назовите сумму: например, «в копилку 5000»'); return false; }
+    deposit(open, run.v); return true;
+  }
+  const list = parsePhrase(text); if (!list.length) return false;
+  const made = list.map(e => ({ ...e, id: rid(), done: false }));
+  tab = made[0].kind === 'plan' ? 'plan' : 'spend';
+  made.forEach(put);
+  const a = made[0];
+  const label = made.length > 1 ? `Записано: ${made.length}, на ${fmt(made.reduce((s, e) => s + (e.amount || 0), 0))}` : `${a.title}${a.amount !== null ? ' · ' + fmt(a.amount) : ''} · ${a.kind === 'plan' ? 'в планах' : a.cat}`;
+  toast(label, () => made.forEach(e => drop(e.id)));
+  return true;
+}
+$('add').addEventListener('submit', e => { e.preventDefault(); const f = $('say'); if (save(f.value)) f.value = ''; else if (!f.value.trim()) toast('Скажите, что купили: например, «хлеб 60»'); f.focus(); });
+document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', () => { tab = b.dataset.t; render(); scrollTo(0, 0); }));
+const dayName = t => { const k = dayKey(t), now = Date.now(); if (k === dayKey(now)) return 'Сегодня'; if (k === dayKey(now - 864e5)) return 'Вчера'; return new Date(t).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' }); };
+function rowBtn(e, sub) {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'row';
+  const g = document.createElement('div'); g.className = 'grow'; g.textContent = e.title;
+  const s = document.createElement('small'); s.textContent = sub; g.append(s);
+  const none = e.amount === null || e.amount === undefined;
+  const a = document.createElement('div'); a.className = 'amt' + (none ? ' none' : ''); a.textContent = none ? (e.kind === 'plan' ? '' : 'сумма?') : fmt(e.amount);
+  if (e.kind === 'spend') b.append(icon(e.cat));
+  b.append(g, a); b.addEventListener('click', () => openEdit(e)); return b;
+}
+function emptyState(h, ex, lead) { const d = document.createElement('div'); d.className = 'empty'; const b = document.createElement('b'); b.textContent = h; d.append(b); if (lead) d.append(lead); ex.forEach(x => { const c = document.createElement('span'); c.textContent = x; d.append(c); }); return d; }
+function sec(left, right) { const h = document.createElement('div'); h.className = 'sec'; const n = document.createElement('span'); n.textContent = left; h.append(n); if (right) { const b = document.createElement('b'); b.textContent = right; h.append(b); } return h; }
+function renderHero(month, sum, now) {
+  $('totalN').textContent = fmt(sum);
+  $('monthName').textContent = 'Потрачено за ' + now.toLocaleDateString('ru-RU', { month: 'long' });
+  const day = now.getDate(), last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  $('heroSub').textContent = sum ? `В среднем ${fmt(Math.round(sum / day))} в день` : `Осталось дней в месяце: ${last - day}`;
+  const w = $('week'); w.replaceChildren();
+  const vals = [];
+  for (let i = 6; i >= 0; i--) { const d = new Date(now); d.setDate(d.getDate() - i); const k = dayKey(d.getTime()); vals.push({ d, v: entries.filter(e => e.kind === 'spend' && dayKey(e.ts) === k).reduce((s, e) => s + (e.amount || 0), 0) }); }
+  const max = Math.max(1, ...vals.map(x => x.v));
+  vals.forEach((x, i) => { const c = document.createElement('div'); if (i === 6) c.className = 'now'; const b = document.createElement('i'); b.style.height = Math.max(5, x.v / max * 72) + '%'; const l = document.createElement('span'); l.textContent = x.d.toLocaleDateString('ru-RU', { weekday: 'narrow' }).toUpperCase(); c.append(b, l); w.append(c); });
+}
+function render() {
+  // Не сбрасываем сумму, пока её вводят в карточке цели.
+  if (document.activeElement && document.activeElement.matches && document.activeElement.matches('#list input')) return;
+  const now = new Date(), month = entries.filter(e => e.kind === 'spend' && new Date(e.ts).getMonth() === now.getMonth() && new Date(e.ts).getFullYear() === now.getFullYear());
+  const sum = month.reduce((s, e) => s + (e.amount || 0), 0);
+  renderHero(month, sum, now);
+  $('tip').hidden = entries.length > 2;
+  document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.t === tab));
+  const L = $('list'); L.replaceChildren();
+  if (tab === 'spend') {
+    const all = entries.filter(e => e.kind === 'spend').sort((a, b) => b.ts - a.ts);
+    if (!all.length) { L.append(emptyState('Трат пока нет', ['хлеб 60', 'такси триста пятьдесят', 'молоко 120, сыр 400', 'вчера бензин 2000'])); return; }
+    const days = new Map(); all.forEach(e => { const k = dayKey(e.ts); if (!days.has(k)) days.set(k, []); days.get(k).push(e); });
+    days.forEach(list => {
+      const w = document.createElement('div');
+      w.append(sec(dayName(list[0].ts), fmt(list.reduce((s, e) => s + (e.amount || 0), 0))));
+      const g = document.createElement('div'); g.className = 'group'; list.forEach(e => g.append(rowBtn(e, e.cat))); w.append(g); L.append(w);
+    });
+  } else if (tab === 'plan') {
+    const all = entries.filter(e => e.kind === 'plan').sort((a, b) => a.ts - b.ts);
+    if (!all.length) { L.append(emptyState('Планов пока нет', ['план шины 15000', 'надо купить куртку 8000', 'план записаться к врачу'])); return; }
+    const w = document.createElement('div'); w.append(sec('Всего запланировано', fmt(all.reduce((s, e) => s + (e.amount || 0), 0))));
+    const g = document.createElement('div'); g.className = 'group';
+    for (const e of all) {
+      const r = document.createElement('div'); r.className = 'rowwrap';
+      const t = document.createElement('button'); t.type = 'button'; t.className = 'tick'; t.setAttribute('aria-label', 'Выполнено: ' + e.title);
+      t.addEventListener('click', () => { const before = { ...e }; if (e.amount === null || e.amount === undefined) { drop(e.id); toast('«' + e.title + '» выполнено', () => put(before)); return; } put({ ...e, kind: 'spend', ts: Date.now() }); toast(e.title + ' перенесено в траты', () => put(before)); });
+      r.append(t, rowBtn(e, e.cat)); g.append(r);
+    }
+    w.append(g); L.append(w);
+  } else if (tab === 'goal') {
+    const newBtn = document.createElement('button'); newBtn.type = 'button'; newBtn.className = 'ghost'; newBtn.textContent = goals.length ? 'Новая цель' : 'Создать первую цель'; newBtn.addEventListener('click', () => openGoal(null));
+    if (!goals.length) {
+      const d = emptyState('Копите и стройте', ['в копилку 5000']);
+      const svg = document.createElement('div'); svg.className = 'goal'; svg.style.padding = '0'; svg.style.background = 'none'; svg.style.marginBottom = '10px'; svg.innerHTML = `<svg viewBox="0 0 320 200" role="img" aria-label="Контур будущего дома">${ART.house.parts.map(p => `<g class="part off">${p}</g>`).join('')}</svg>`;
+      d.insertBefore(svg, d.children[1]);
+      const txt = document.createElement('div'); txt.textContent = 'Дом или машина достраиваются с каждым взносом. Потом можно пополнять голосом:'; txt.style.marginBottom = '4px'; d.insertBefore(txt, d.children[2]);
+      L.append(d, newBtn); return;
+    }
+    goals.forEach(g => L.append(goalCard(g)));
+    L.append(newBtn);
+    const m = document.createElement('div'); m.className = 'mini';
+    const c = document.createElement('button'); c.type = 'button'; c.textContent = 'Скопировать копию'; c.addEventListener('click', copyBackup);
+    const r = document.createElement('button'); r.type = 'button'; r.textContent = 'Восстановить из копии'; r.addEventListener('click', () => { $('rText').value = ''; $('rSheet').hidden = false; });
+    m.append(c, r); L.append(m);
+    const note = document.createElement('div'); note.id = 'tip'; note.textContent = (window.claude ? 'Копилка хранится' : 'Все записи хранятся') + ' только на этом телефоне. Очистка данных Safari или удаление значка их сотрёт, поэтому время от времени сохраняйте копию в Заметки.'; note.style.padding = '0 6px'; L.append(note);
+  } else {
+    if (!month.length) { L.append(emptyState('В этом месяце трат ещё нет', ['хлеб 60'])); return; }
+    const by = {}; month.forEach(e => by[e.cat] = (by[e.cat] || 0) + (e.amount || 0));
+    const sorted = Object.entries(by).sort((a, b) => b[1] - a[1]), max = sorted[0][1] || 1;
+    const w = document.createElement('div'); w.append(sec('По категориям'));
+    const g = document.createElement('div'); g.className = 'group';
+    for (const [c, v] of sorted) {
+      const r = document.createElement('div'); r.className = 'cat';
+      const body = document.createElement('div'); body.style.minWidth = '0';
+      const line = document.createElement('div'); line.className = 'line';
+      const a = document.createElement('span'); a.textContent = c; const sm = document.createElement('small'); sm.textContent = Math.round(v / (sum || 1) * 100) + '%'; a.append(sm);
+      const b = document.createElement('span'); b.className = 'amt'; b.textContent = fmt(v); line.append(a, b);
+      const bar = document.createElement('div'); bar.className = 'bar'; bar.style.marginTop = '6px'; const i = document.createElement('i'); i.style.width = (v / max * 100) + '%'; i.style.background = (ICONS[c] || ICONS['Другое'])[0]; bar.append(i);
+      body.append(line, bar); r.append(icon(c), body); g.append(r);
+    }
+    w.append(g); L.append(w);
+  }
+}
+CAT_NAMES.forEach(n => { const o = document.createElement('option'); o.value = o.textContent = n; $('fCat').append(o); });
+function openEdit(e) { editing = e; $('fTitle').value = e.title; $('fAmt').value = e.amount ?? ''; $('fCat').value = e.cat; $('fKind').value = e.kind; $('sheet').hidden = false; }
+const closeEdit = () => { $('sheet').hidden = true; editing = null; };
+$('fCancel').addEventListener('click', closeEdit);
+$('sheet').addEventListener('click', e => { if (e.target === $('sheet')) closeEdit(); });
+$('fDel').addEventListener('click', () => { const b = { ...editing }; drop(b.id); closeEdit(); toast('«' + b.title + '» удалено', () => put(b)); });
+$('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const a = $('fAmt').value.trim();
+  put({ ...editing, title: $('fTitle').value.trim() || editing.title, amount: a === '' ? null : parseFloat(a.replace(',', '.')), cat: $('fCat').value, kind: $('fKind').value });
+  closeEdit();
+});
+
+// Голос прямо со страницы там, где браузер это разрешает. Иначе работает микрофон клавиатуры.
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR) {
+  const mic = $('mic'); mic.hidden = false; let rec = null;
+  mic.addEventListener('click', () => {
+    if (rec) { rec.stop(); return; }
+    try {
+      rec = new SR(); rec.lang = 'ru-RU'; rec.interimResults = true; rec.continuous = false;
+      mic.classList.add('on');
+      rec.onresult = e => { const r = e.results[e.results.length - 1]; $('say').value = r[0].transcript; if (r.isFinal && save(r[0].transcript)) $('say').value = ''; };
+      rec.onerror = () => { mic.hidden = true; $('say').focus(); toast('Здесь голос через кнопку не работает. Используйте микрофон на клавиатуре.'); };
+      rec.onend = () => { mic.classList.remove('on'); rec = null; };
+      rec.start();
+    } catch { mic.hidden = true; $('say').focus(); }
+  });
+}
+boot();
+// В автономной версии приложение открывается и без интернета.
+if (!window.claude && location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+
+</html>
