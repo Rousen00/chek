@@ -371,6 +371,22 @@ const photoSvg = (key, built, prev, id) => {
   const shapes = a.parts.map((p, i) => i >= built ? '' : `<g${i >= prev ? ' class="reveal"' : ''}>${p}</g>`).join('');
   return `<svg viewBox="0 0 960 ${a.h}" role="img"><defs><filter id="f${safe}" filterUnits="userSpaceOnUse" x="-40" y="-40" width="1040" height="${a.h + 80}"><feGaussianBlur stdDeviation="9"/></filter><mask id="m${safe}" maskUnits="userSpaceOnUse" x="0" y="0" width="960" height="${a.h}"><g fill="#fff" filter="url(#f${safe})">${shapes}</g></mask></defs><image href="img/${key}-g.jpg" width="960" height="${a.h}"/>${built ? `<image href="img/${key}.jpg" width="960" height="${a.h}" mask="url(#m${safe})"/>` : ''}</svg>`;
 };
+// Траты списываются из выбранной цели. В записи помним, сколько и откуда списано, чтобы правка и отмена вернули ровно столько же.
+const spendGoal = () => goals.find(g => g.main) || goals.find(g => g.saved > 0) || goals[0] || null;
+function charge(e) {
+  const g = spendGoal();
+  e.goalId = null; e.charged = 0;
+  if (!g || e.kind !== 'spend' || !(e.amount > 0)) return 0;
+  const take = Math.min(g.saved, e.amount);
+  g.saved = Math.round((g.saved - take) * 100) / 100;
+  e.goalId = g.id; e.charged = take;
+  return e.amount - take;
+}
+function refund(e) {
+  const g = goals.find(x => x.id === e.goalId);
+  if (g && e.charged > 0) g.saved = Math.round((g.saved + e.charged) * 100) / 100;
+  e.goalId = null; e.charged = 0;
+}
 function deposit(g, amt, undoable = true) {
   const before = g.saved;
   g.saved = Math.max(0, Math.round((g.saved + amt) * 100) / 100); saveGoals();
@@ -404,6 +420,10 @@ function goalCard(g) {
   add.append(inp, plus, minus);
   const mini = document.createElement('div'); mini.className = 'mini';
   const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = 'Изменить цель'; edit.addEventListener('click', () => openGoal(g)); mini.append(edit);
+  const isMain = spendGoal() === g;
+  const mainBtn = document.createElement('button'); mainBtn.type = 'button'; mainBtn.textContent = isMain ? 'Траты списываются отсюда' : 'Списывать траты отсюда'; mainBtn.disabled = isMain;
+  mainBtn.addEventListener('click', () => { goals.forEach(x => { x.main = x === g; }); saveGoals(); render(); });
+  mini.append(mainBtn);
   const cr = document.createElement('div'); cr.className = 'credit'; const l = document.createElement('a'); l.href = art.link; l.target = '_blank'; l.rel = 'noopener'; l.textContent = 'Фото: ' + art.credit; cr.append(l);
   c.append(head, bar, sub, add, mini, cr);
   return c;
@@ -433,9 +453,9 @@ $('rForm').addEventListener('submit', e => {
   try {
     const data = JSON.parse($('rText').value), list = Array.isArray(data) ? data : data.goals;
     // В копии автономной версии лежат ещё и траты с планами.
-    if (Array.isArray(data.entries)) data.entries.filter(x => x && x.id && x.title && x.ts).forEach(x => { if (!entries.some(o => o.id === x.id)) put({ id: String(x.id), kind: x.kind === 'plan' ? 'plan' : 'spend', title: String(x.title), amount: typeof x.amount === 'number' ? x.amount : null, cat: CAT_NAMES.includes(x.cat) ? x.cat : 'Другое', ts: x.ts, done: false }); });
+    if (Array.isArray(data.entries)) data.entries.filter(x => x && x.id && x.title && x.ts).forEach(x => { if (!entries.some(o => o.id === x.id)) put({ id: String(x.id), kind: x.kind === 'plan' ? 'plan' : 'spend', title: String(x.title), amount: typeof x.amount === 'number' ? x.amount : null, cat: CAT_NAMES.includes(x.cat) ? x.cat : 'Другое', ts: x.ts, done: false, goalId: x.goalId ? String(x.goalId) : null, charged: x.charged > 0 ? x.charged : 0 }); });
     if (!Array.isArray(list) || list.some(g => !g.id || !g.title || !(g.target > 0) || typeof g.saved !== 'number')) throw 0;
-    const before = goals; goals = list.map(g => ({ id: String(g.id), title: String(g.title), target: g.target, saved: g.saved, art: ART[g.art] ? g.art : 'house' })); saveGoals(); $('rSheet').hidden = true; tab = 'goal'; render();
+    const before = goals; goals = list.map(g => ({ id: String(g.id), title: String(g.title), target: g.target, saved: g.saved, art: ART[g.art] ? g.art : 'house', main: g.main === true })); saveGoals(); $('rSheet').hidden = true; tab = 'goal'; render();
     toast('Копилка восстановлена', () => { goals = before; saveGoals(); render(); });
   } catch { toast('Это не похоже на копию копилки. Проверьте текст.'); }
 });
@@ -457,7 +477,7 @@ $('toastU').addEventListener('click', () => { if (undoFn) undoFn(); $('toast').h
 function save(text) {
   const low = text.trim().toLowerCase().replace(/ё/g, 'е');
   if (SAVE_RE.test(low)) {
-    const open = goals.find(g => g.saved < g.target) || goals[0];
+    const open = spendGoal();
     const run = numberRuns(tokenize(low)).pop();
     if (!open) { tab = 'goal'; render(); toast('Сначала создайте цель в копилке'); return true; }
     if (!run || !(run.v > 0)) { toast('Назовите сумму: например, «в копилку 5000»'); return false; }
@@ -466,10 +486,14 @@ function save(text) {
   const list = parsePhrase(text); if (!list.length) return false;
   const made = list.map(e => ({ ...e, id: rid(), done: false }));
   tab = made[0].kind === 'plan' ? 'plan' : 'spend';
+  const short = made.reduce((s, e) => s + charge(e), 0);
+  if (made.some(e => e.charged > 0)) saveGoals();
   made.forEach(put);
-  const a = made[0];
-  const label = made.length > 1 ? `Записано: ${made.length}, на ${fmt(made.reduce((s, e) => s + (e.amount || 0), 0))}` : `${a.title}${a.amount !== null ? ' · ' + fmt(a.amount) : ''} · ${a.kind === 'plan' ? 'в планах' : a.cat}`;
-  toast(label, () => made.forEach(e => drop(e.id)));
+  const a = made[0], g = goals.find(x => made.some(e => e.goalId === x.id));
+  let label = made.length > 1 ? `Записано: ${made.length}, на ${fmt(made.reduce((s, e) => s + (e.amount || 0), 0))}` : `${a.title}${a.amount !== null ? ' · ' + fmt(a.amount) : ''} · ${a.kind === 'plan' ? 'в планах' : a.cat}`;
+  if (g) label += ` · в цели «${g.title}» ${fmt(g.saved)}`;
+  if (short > 0) label += `. Не хватило ${fmt(short)}`;
+  toast(label, () => { made.forEach(refund); saveGoals(); made.forEach(e => drop(e.id)); });
   return true;
 }
 $('add').addEventListener('submit', e => { e.preventDefault(); const f = $('say'); if (save(f.value)) f.value = ''; else if (!f.value.trim()) toast('Скажите, что купили: например, «хлеб 60»'); f.focus(); });
@@ -491,9 +515,9 @@ function renderHero(month, sum, now) {
   $('monthName').textContent = 'Потрачено за ' + now.toLocaleDateString('ru-RU', { month: 'long' });
   const day = now.getDate(), last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   $('heroSub').textContent = sum ? `В среднем ${fmt(Math.round(sum / day))} в день` : `Осталось дней в месяце: ${last - day}`;
-  const open = goals.find(g => g.saved < g.target) || goals[0];
+  const open = spendGoal();
   $('heroGoal').hidden = !open || tab === 'goal';
-  if (open) { $('heroImg').src = `img/${ART[open.art] ? open.art : 'house'}.jpg`; $('heroTitle').textContent = open.title; $('heroPct').textContent = Math.floor(Math.min(1, open.saved / open.target) * 100) + '%'; }
+  if (open) { $('heroImg').src = `img/${ART[open.art] ? open.art : 'house'}.jpg`; $('heroTitle').textContent = `${open.title} · ${fmt(open.saved)}`; $('heroPct').textContent = Math.floor(Math.min(1, open.saved / open.target) * 100) + '%'; }
   const w = $('week'); w.replaceChildren();
   const vals = [];
   for (let i = 6; i >= 0; i--) { const d = new Date(now); d.setDate(d.getDate() - i); const k = dayKey(d.getTime()); vals.push({ d, v: entries.filter(e => e.kind === 'spend' && dayKey(e.ts) === k).reduce((s, e) => s + (e.amount || 0), 0) }); }
@@ -526,7 +550,7 @@ function render() {
     for (const e of all) {
       const r = document.createElement('div'); r.className = 'rowwrap';
       const t = document.createElement('button'); t.type = 'button'; t.className = 'tick'; t.setAttribute('aria-label', 'Выполнено: ' + e.title);
-      t.addEventListener('click', () => { const before = { ...e }; if (e.amount === null || e.amount === undefined) { drop(e.id); toast('«' + e.title + '» выполнено', () => put(before)); return; } put({ ...e, kind: 'spend', ts: Date.now() }); toast(e.title + ' перенесено в траты', () => put(before)); });
+      t.addEventListener('click', () => { const before = { ...e }; if (e.amount === null || e.amount === undefined) { drop(e.id); toast('«' + e.title + '» выполнено', () => put(before)); return; } const done = { ...e, kind: 'spend', ts: Date.now() }; charge(done); saveGoals(); put(done); toast(e.title + ' перенесено в траты', () => { refund(done); saveGoals(); put(before); }); });
       r.append(t, rowBtn(e, e.cat)); g.append(r);
     }
     w.append(g); L.append(w);
@@ -569,11 +593,14 @@ function openEdit(e) { editing = e; $('fTitle').value = e.title; $('fAmt').value
 const closeEdit = () => { $('sheet').hidden = true; editing = null; };
 $('fCancel').addEventListener('click', closeEdit);
 $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) closeEdit(); });
-$('fDel').addEventListener('click', () => { const b = { ...editing }; drop(b.id); closeEdit(); toast('«' + b.title + '» удалено', () => put(b)); });
+$('fDel').addEventListener('click', () => { const b = { ...editing }, gid = b.goalId, paid = b.charged; refund(b); saveGoals(); drop(b.id); closeEdit(); toast('«' + b.title + '» удалено', () => { const g = goals.find(x => x.id === gid); if (g && paid > 0) { const back = Math.min(g.saved, paid); g.saved = Math.round((g.saved - back) * 100) / 100; b.goalId = gid; b.charged = back; saveGoals(); } put(b); }); });
 $('form').addEventListener('submit', e => {
   e.preventDefault();
   const a = $('fAmt').value.trim();
-  put({ ...editing, title: $('fTitle').value.trim() || editing.title, amount: a === '' ? null : parseFloat(a.replace(',', '.')), cat: $('fCat').value, kind: $('fKind').value });
+  const updated = { ...editing, title: $('fTitle').value.trim() || editing.title, amount: a === '' ? null : parseFloat(a.replace(',', '.')), cat: $('fCat').value, kind: $('fKind').value };
+  // Старые записи без списания не трогаем, пока не изменились сумма или раздел.
+  if (updated.amount !== editing.amount || updated.kind !== editing.kind) { refund(updated); charge(updated); saveGoals(); }
+  put(updated);
   closeEdit();
 });
 
