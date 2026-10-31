@@ -594,6 +594,11 @@ if (SR) {
   });
 }
 boot();
+// Команда Siri открывает адрес вида ?add=хлеб 60. Адрес сразу очищаем, чтобы обновление страницы не записало трату повторно.
+if (!window.claude) {
+  const spoken = (new URLSearchParams(location.search).get('add') || '').slice(0, 200).trim();
+  if (spoken) { history.replaceState(null, '', location.pathname); if (!save(spoken)) toast('Не удалось разобрать: «' + spoken + '»'); }
+}
 // В автономной версии приложение открывается и без интернета.
 if (!window.claude && location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
