@@ -561,7 +561,12 @@ function render() {
       const svg = document.createElement('div'); svg.className = 'photo'; svg.style.marginBottom = '12px'; svg.innerHTML = photoSvg('moto', 4, 4, 'demo'); svg.firstChild.setAttribute('aria-label', 'Пример: мотоцикл, собранный наполовину'); svg.firstChild.style.display = 'block'; svg.firstChild.style.width = '100%'; svg.firstChild.style.height = 'auto';
       d.insertBefore(svg, d.children[1]);
       const txt = document.createElement('div'); txt.textContent = 'Выберите дом, квартиру, Audi A7 или мотоцикл. С каждым взносом на фото оживает новая часть. Пополнять можно голосом:'; txt.style.marginBottom = '4px'; d.insertBefore(txt, d.children[2]);
-      L.append(d, newBtn); return;
+      // На новом значке целей ещё нет, но перенос данных уже должен быть доступен.
+      const em = document.createElement('div'); em.className = 'mini';
+      const ec = document.createElement('button'); ec.type = 'button'; ec.textContent = 'Скопировать копию'; ec.addEventListener('click', copyBackup);
+      const er = document.createElement('button'); er.type = 'button'; er.textContent = 'Восстановить из копии'; er.addEventListener('click', () => { $('rText').value = ''; $('rSheet').hidden = false; });
+      em.append(ec, er);
+      L.append(d, newBtn, em); return;
     }
     goals.forEach(g => L.append(goalCard(g)));
     L.append(newBtn);
