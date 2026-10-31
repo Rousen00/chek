@@ -2,7 +2,7 @@
 <html lang="ru">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Чек"><meta name="theme-color" content="#10332c"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Чек"><meta name="theme-color" content="#07332b"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png">
 <title>Карманный чек</title>
 
 <style>
@@ -71,11 +71,21 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.35 var(
 .empty span::before { content: "«"; } .empty span::after { content: "»"; }
 .goal { background: var(--card); border-radius: 22px; padding: 14px; display: grid; gap: 10px; }
 .goal svg { display: block; width: 100%; height: auto; border-radius: 14px; background: var(--tint); }
-.part { transition: opacity .3s; }
-.part.off * { fill: none !important; stroke: var(--ghost); stroke-width: 1.2; stroke-dasharray: 3 3; }
-.part.new { animation: pop .7s cubic-bezier(.2, 1.5, .4, 1) both; transform-box: fill-box; transform-origin: 50% 100%; }
-@keyframes pop { from { opacity: 0; transform: translateY(10px) scale(.92); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .part.new { animation: none; } }
+.photo { position: relative; border-radius: 18px; overflow: hidden; background: #0c0f0e; }
+.goal .photo svg { border-radius: 0; background: none; }
+.photo .pct { position: absolute; right: 10px; top: 10px; padding: 4px 11px; border-radius: 999px; background: #0b1512cc; color: var(--lime); font: 800 16px var(--round); }
+.photo .stage { position: absolute; left: 10px; bottom: 10px; max-width: calc(100% - 20px); box-sizing: border-box; padding: 5px 11px; border-radius: 999px; background: #0b1512cc; color: #fff; font-size: 12px; font-weight: 600; }
+.reveal { animation: reveal 1.1s ease-out both; }
+@keyframes reveal { from { opacity: 0; } to { opacity: 1; } }
+.row, .goal { animation: rise .32s ease-out both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .reveal, .row, .goal { animation: none; } }
+.credit { color: var(--soft); font-size: 11px; }
+.credit a { color: inherit; }
+.pick4 { grid-template-columns: repeat(4, 1fr); }
+.pick4 button { padding: 0; overflow: hidden; display: grid; min-height: 0; font-size: 12px; border-radius: 13px; }
+.pick4 img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; }
+.pick4 span { padding: 6px 2px; }
 .ghead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .ghead b { font: 700 19px var(--round); overflow-wrap: anywhere; min-width: 0; }
 .ghead span { font: 700 19px var(--round); color: var(--accent); }
@@ -108,12 +118,42 @@ body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.35 var(
 #toast span { min-width: 0; overflow-wrap: anywhere; }
 #toast button { border: 0; background: none; color: inherit; font: 700 14px var(--font); min-height: 36px; flex: none; opacity: .85; }
 button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+/* Живая подача: насыщенная карточка баланса, лаймовый акцент и плавающая панель вкладок. */
+:root { --lime: #c9f73a; --lime-ink: #10210f; }
+#app { padding-block-end: calc(env(safe-area-inset-bottom, 0px) + 112px); }
+#hero { position: relative; overflow: hidden; border-radius: 28px; padding: 20px; background: radial-gradient(110% 130% at 100% 0, #27c586 0, transparent 58%), radial-gradient(90% 110% at 0 100%, #0a6f6a 0, transparent 60%), #07332b; box-shadow: 0 14px 30px #07332b40; }
+#totalN { font-size: 44px; font-weight: 800; }
+#hero small, #heroSub { color: #d3efe3; }
+#week i { background: #ffffff40; } #week .now i { background: var(--lime); }
+#week div { color: #d3efe3; }
+#heroGoal { grid-column: 1 / -1; display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border: 0; border-radius: 16px; background: #ffffff1f; color: #fff; text-align: left; font: 600 14px var(--font); }
+#heroGoal img { width: 52px; height: 40px; object-fit: cover; border-radius: 10px; display: block; }
+#heroGoal span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#heroGoal b { color: var(--lime); font: 800 16px var(--round); }
+#add { border-radius: 22px; }
+#send { background: var(--lime); color: var(--lime-ink); }
+.group, .empty { border-radius: 22px; }
+.goal { border-radius: 26px; }
+.ico { border-radius: 13px; box-shadow: inset 0 0 0 1px #ffffff26; }
+.amt { font-weight: 700; }
+.sec { font-size: 14px; color: var(--ink); }
+.sec b { color: var(--soft); }
+.gadd .in, .acts .pri { background: var(--lime); color: var(--lime-ink); }
+.ghost { background: var(--ink); color: var(--bg); font-weight: 700; }
+.bar i, .goal .bar i { background: linear-gradient(90deg, #17a673, var(--lime)); }
+#tabs { left: 50%; right: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); transform: translateX(-50%); width: min(calc(100vw - 32px), 460px); box-sizing: border-box; padding: 6px; gap: 2px; border: 0; border-radius: 26px; background: #101a17f2; box-shadow: 0 10px 28px #0000003d; }
+#tabs button { max-width: none; border-radius: 20px; color: #aab8b2; min-height: 52px; }
+#tabs button[aria-selected="true"] { background: var(--lime); color: var(--lime-ink); font-weight: 700; }
+#toast { bottom: calc(env(safe-area-inset-bottom, 0px) + 90px); }
+.pick.pick4 { grid-template-columns: repeat(4, 1fr); }
+.sheet form { max-height: 92%; overflow-y: auto; }
 </style>
 
 <main id="app">
   <section id="hero" aria-label="Траты за месяц">
     <div><small id="monthName">За месяц</small><div id="totalN">0 ₽</div><div id="heroSub"></div></div>
     <div id="week" aria-hidden="true"></div>
+    <button id="heroGoal" type="button" hidden><img alt="" id="heroImg"><span id="heroTitle"></span><b id="heroPct"></b></button>
   </section>
   <form id="add" autocomplete="off">
     <input id="say" type="text" enterkeyhint="done" placeholder="Молоко 120" aria-label="Что купили и сколько">
@@ -146,7 +186,7 @@ button:focus-visible, select:focus-visible { outline: 3px solid var(--accent); o
     <h2 id="gHead">Новая цель</h2>
     <label>На что копим <input id="gTitle" type="text" placeholder="Дом у озера" required></label>
     <label>Сколько нужно, ₽ <input id="gTarget" type="number" inputmode="numeric" min="1" step="any" required></label>
-    <div class="pick"><button type="button" id="pHouse" aria-pressed="true">Дом</button><button type="button" id="pCar" aria-pressed="false">Машина</button></div>
+    <div class="pick pick4" id="picks"></div>
     <div class="acts"><button type="button" class="del" id="gDel" hidden>Удалить</button><button type="button" id="gCancel">Отмена</button><button type="submit" class="pri">Сохранить</button></div>
   </form>
 </div>
@@ -301,31 +341,35 @@ const boot = async () => {
 let goals = (() => { try { return JSON.parse(localStorage.getItem('chek.goals') || '[]'); } catch { return []; } })();
 let goalStorageOk = true, shown = {}, editGoal = null, goalArt = 'house';
 const saveGoals = () => { try { localStorage.setItem('chek.goals', JSON.stringify(goals)); goalStorageOk = true; } catch { goalStorageOk = false; toast('Этот браузер не сохраняет копилку. Откройте приложение в Safari не в приватном режиме.'); } };
+// Каждый этап открывает в цвете свою часть настоящей фотографии. Координаты в размере кадра 960 точек.
+const poly = p => `<polygon points="${p}"/>`, oval = (x, y, a, b) => `<ellipse cx="${x}" cy="${y}" rx="${a}" ry="${b}"/>`, box = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"/>`;
+const ALL = h => box(-40, -40, 1040, h + 80);
 const ART = {
-  house: { stages: ['Участок', 'Фундамент', 'Стены', 'Крыша', 'Дверь', 'Окна', 'Труба', 'Забор', 'Дерево', 'Солнце'], parts: [
-    '<rect x="0" y="168" width="320" height="32" fill="var(--grass)"/>',
-    '<rect x="88" y="156" width="144" height="14" rx="2" fill="var(--metal)"/>',
-    '<rect x="96" y="96" width="128" height="60" fill="var(--wall)"/>',
-    '<path d="M84 98 160 46l76 52z" fill="var(--roof)"/>',
-    '<rect x="146" y="118" width="28" height="38" rx="2" fill="var(--wood)"/><circle cx="168" cy="138" r="2" fill="var(--sun)"/>',
-    '<rect x="108" y="108" width="26" height="24" rx="2" fill="var(--glass)"/><rect x="186" y="108" width="26" height="24" rx="2" fill="var(--glass)"/><path d="M121 108v24M199 108v24M108 120h26M186 120h26" stroke="var(--wall)" stroke-width="2"/>',
-    '<rect x="192" y="54" width="14" height="30" fill="var(--metal)"/>',
-    '<path d="M8 150h66M246 150h66M14 142v26M32 142v26M50 142v26M68 142v26M252 142v26M270 142v26M288 142v26M306 142v26" fill="none" stroke="var(--wood)" stroke-width="4"/>',
-    '<rect x="39" y="118" width="8" height="50" fill="var(--wood)"/><circle cx="43" cy="100" r="28" fill="var(--grass)"/>',
-    '<circle cx="272" cy="38" r="20" fill="var(--sun)"/>',
-  ] },
-  car: { stages: ['Дорога', 'Рама', 'Колёса', 'Кузов', 'Кабина', 'Стёкла', 'Двери', 'Фары', 'Бампер', 'Полоска'], parts: [
-    '<rect x="0" y="164" width="320" height="36" fill="var(--road)"/><path d="M16 182h36M84 182h36M152 182h36M220 182h36M288 182h24" stroke="var(--sun)" stroke-width="3"/>',
-    '<rect x="50" y="134" width="220" height="10" rx="3" fill="var(--metal)"/>',
-    '<circle cx="94" cy="146" r="20" fill="var(--metal)"/><circle cx="94" cy="146" r="9" fill="var(--wall)"/><circle cx="226" cy="146" r="20" fill="var(--metal)"/><circle cx="226" cy="146" r="9" fill="var(--wall)"/>',
-    '<path d="M38 136v-20q0-10 12-12l60-8h100q42 2 60 18 8 8 8 22H250a24 24 0 0 0-48 0H118a24 24 0 0 0-48 0z" fill="var(--paint)"/>',
-    '<path d="M104 98q24-40 58-42h34q30 2 50 42z" fill="var(--paint)"/>',
-    '<path d="M120 96q18-30 42-31h12v31zM184 65h10q22 1 38 31h-48z" fill="var(--glass)"/>',
-    '<path d="M178 96v44" fill="none" stroke="var(--roof)" stroke-width="2"/><rect x="150" y="104" width="16" height="4" rx="2" fill="var(--wall)"/><rect x="190" y="104" width="16" height="4" rx="2" fill="var(--wall)"/>',
-    '<rect x="266" y="110" width="22" height="10" rx="4" fill="var(--sun)"/><rect x="36" y="110" width="14" height="10" rx="3" fill="var(--wood)"/>',
-    '<rect x="30" y="128" width="30" height="8" rx="3" fill="var(--metal)"/><rect x="262" y="128" width="28" height="8" rx="3" fill="var(--metal)"/>',
-    '<path d="M46 120h226" fill="none" stroke="var(--wall)" stroke-width="4"/>',
-  ] },
+  house: { name: 'Дом', h: 640, credit: 'Shixart1985, CC BY 2.0', link: 'https://commons.wikimedia.org/wiki/File:Modern_house_exterior_with_red_roof_and_landscaped_garden_under_clear_blue_sky.jpg',
+    stages: ['Участок', 'Фундамент', 'Стены', 'Колонны', 'Крыша', 'Труба', 'Двери', 'Окна', 'Сад', 'Небо'], parts: [
+      poly('0,545 960,545 960,640 0,640'), poly('0,490 960,500 960,550 0,550'), poly('0,262 960,238 960,520 0,500'),
+      box(5, 315, 50, 140) + box(290, 315, 36, 135), poly('0,195 745,165 960,208 960,245 0,268'), box(570, 145, 40, 55),
+      box(158, 362, 118, 140) + box(406, 362, 120, 140), box(722, 352, 138, 108), poly('0,440 590,410 590,552 0,552'), ALL(640)] },
+  flat: { name: 'Квартира', h: 641, credit: 'Shixart1985, CC BY 2.0', link: 'https://commons.wikimedia.org/wiki/File:Modern_living_room_with_stylish_furniture_and_a_view_of_the_outdoors_in_a_cozy_apartment_setting.jpg',
+    stages: ['Стены', 'Пол', 'Потолок', 'Окно', 'Шторы', 'Диван', 'Столик', 'Телевизор', 'Тумба', 'Уют'], parts: [
+      poly('0,0 300,0 300,360 0,320') + poly('660,0 960,0 960,430 660,370'), poly('220,400 670,400 960,640 200,640'), poly('150,0 780,0 700,110 225,110'),
+      box(395, 140, 150, 250), box(292, 108, 128, 295) + box(525, 108, 122, 295), poly('0,310 245,310 350,370 350,640 0,640'), poly('355,440 580,440 695,640 350,640'),
+      poly('775,50 960,30 960,290 775,280'), poly('670,370 960,440 960,640 670,445'), ALL(641)] },
+  car: { name: 'Audi A7', h: 641, credit: 'Alexander Migl, CC BY-SA 4.0, фон затемнён', link: 'https://commons.wikimedia.org/wiki/File:Audi_A7_Sportback_Genf_2018.jpg',
+    stages: ['Колёса', 'Днище', 'Двери', 'Капот', 'Крыша и стёкла', 'Зеркала', 'Бампер', 'Фары', 'Решётка', 'Блеск'], parts: [
+      oval(430, 445, 92, 112) + oval(68, 310, 52, 76), poly('35,300 360,455 520,545 925,510 925,470 520,475 365,395'), poly('25,130 345,130 365,440 30,350'),
+      poly('345,235 650,215 915,325 725,372 525,345 372,290'), poly('90,105 425,100 660,222 345,245 195,240'), box(222, 188, 95, 65),
+      poly('495,400 725,400 725,545 495,545'), poly('518,335 730,362 720,408 550,398'), poly('712,335 935,330 930,505 720,500'), ALL(641)] },
+  moto: { name: 'Мотоцикл', h: 664, credit: 'Sound Media, CC0', link: 'https://commons.wikimedia.org/wiki/File:Kawasaki_Ninja_ZX-6R_ZX636G.jpg',
+    stages: ['Рама', 'Двигатель', 'Заднее колесо', 'Переднее колесо', 'Вилка', 'Выхлоп', 'Бак', 'Сиденье', 'Обтекатель', 'Блеск'], parts: [
+      poly('330,235 500,250 515,370 385,425 315,365'), poly('345,305 515,305 530,430 345,440'), oval(125, 380, 128, 130), oval(780, 505, 170, 158),
+      poly('735,310 840,310 840,510 735,510'), poly('15,175 250,385 180,435 15,255'), poly('355,65 650,65 650,190 355,190'), poly('80,5 375,5 375,195 190,195'),
+      poly('375,180 705,30 935,245 915,305 650,400 615,545 345,490'), ALL(664)] },
+};
+const photoSvg = (key, built, prev, id) => {
+  const a = ART[key] || ART.house, safe = String(id).replace(/[^a-zA-Z0-9]/g, '');
+  const shapes = a.parts.map((p, i) => i >= built ? '' : `<g${i >= prev ? ' class="reveal"' : ''}>${p}</g>`).join('');
+  return `<svg viewBox="0 0 960 ${a.h}" role="img"><defs><filter id="f${safe}" filterUnits="userSpaceOnUse" x="-40" y="-40" width="1040" height="${a.h + 80}"><feGaussianBlur stdDeviation="9"/></filter><mask id="m${safe}" maskUnits="userSpaceOnUse" x="0" y="0" width="960" height="${a.h}"><g fill="#fff" filter="url(#f${safe})">${shapes}</g></mask></defs><image href="img/${key}-g.jpg" width="960" height="${a.h}"/>${built ? `<image href="img/${key}.jpg" width="960" height="${a.h}" mask="url(#m${safe})"/>` : ''}</svg>`;
 };
 function deposit(g, amt, undoable = true) {
   const before = g.saved;
@@ -338,11 +382,13 @@ function goalCard(g) {
   const art = ART[g.art] || ART.house, n = art.parts.length, pct = Math.min(1, g.saved / g.target), built = Math.floor(pct * n + 1e-9);
   const prev = shown[g.id] ?? built; shown[g.id] = built;
   const c = document.createElement('article'); c.className = 'goal';
-  const parts = art.parts.map((p, i) => `<g class="part${i >= built ? ' off' : i >= prev ? ' new' : ''}">${p}</g>`).join('');
-  c.innerHTML = `<svg viewBox="0 0 320 200" role="img">${parts}</svg>`;
-  c.firstChild.setAttribute('aria-label', `Готово этапов: ${built} из ${n}`);
+  const ph = document.createElement('div'); ph.className = 'photo'; ph.innerHTML = photoSvg(g.art, built, prev, g.id);
+  ph.firstChild.setAttribute('aria-label', `${art.name}: готово этапов ${built} из ${n}`);
+  const pc = document.createElement('div'); pc.className = 'pct'; pc.textContent = Math.floor(pct * 100) + '%';
+  const st = document.createElement('div'); st.className = 'stage'; st.textContent = built ? `Готово: ${art.stages[built - 1].toLowerCase()}` : 'Первый этап впереди';
+  ph.append(pc, st); c.append(ph);
   const head = document.createElement('div'); head.className = 'ghead';
-  const t = document.createElement('b'); t.textContent = g.title; const p = document.createElement('span'); p.textContent = Math.floor(pct * 100) + '%'; head.append(t, p);
+  const t = document.createElement('b'); t.textContent = g.title; head.append(t);
   const bar = document.createElement('div'); bar.className = 'bar'; const i = document.createElement('i'); i.style.width = pct * 100 + '%'; bar.append(i);
   const sub = document.createElement('div'); sub.className = 'gsub';
   const a = document.createElement('span'); a.textContent = `${fmt(g.saved)} из ${fmt(g.target)}`;
@@ -358,13 +404,14 @@ function goalCard(g) {
   add.append(inp, plus, minus);
   const mini = document.createElement('div'); mini.className = 'mini';
   const edit = document.createElement('button'); edit.type = 'button'; edit.textContent = 'Изменить цель'; edit.addEventListener('click', () => openGoal(g)); mini.append(edit);
-  c.append(head, bar, sub, add, mini);
+  const cr = document.createElement('div'); cr.className = 'credit'; const l = document.createElement('a'); l.href = art.link; l.target = '_blank'; l.rel = 'noopener'; l.textContent = 'Фото: ' + art.credit; cr.append(l);
+  c.append(head, bar, sub, add, mini, cr);
   return c;
 }
-function setArt(a) { goalArt = a; $('pHouse').setAttribute('aria-pressed', a === 'house'); $('pCar').setAttribute('aria-pressed', a === 'car'); }
+Object.keys(ART).forEach(k => { const b = document.createElement('button'); b.type = 'button'; b.dataset.art = k; const i = document.createElement('img'); i.src = `img/${k}.jpg`; i.alt = ''; const s = document.createElement('span'); s.textContent = ART[k].name; b.append(i, s); b.addEventListener('click', () => setArt(k)); $('picks').append(b); });
+function setArt(a) { goalArt = ART[a] ? a : 'house'; document.querySelectorAll('#picks button').forEach(b => b.setAttribute('aria-pressed', b.dataset.art === goalArt)); }
 function openGoal(g) { editGoal = g || null; $('gHead').textContent = g ? 'Изменить цель' : 'Новая цель'; $('gTitle').value = g ? g.title : ''; $('gTarget').value = g ? g.target : ''; setArt(g ? g.art : 'house'); $('gDel').hidden = !g; $('gSheet').hidden = false; }
-$('pHouse').addEventListener('click', () => setArt('house'));
-$('pCar').addEventListener('click', () => setArt('car'));
+$('heroGoal').addEventListener('click', () => { tab = 'goal'; render(); });
 $('gCancel').addEventListener('click', () => { $('gSheet').hidden = true; });
 $('gSheet').addEventListener('click', e => { if (e.target === $('gSheet')) $('gSheet').hidden = true; });
 $('gDel').addEventListener('click', () => { const g = editGoal, i = goals.indexOf(g); goals.splice(i, 1); saveGoals(); $('gSheet').hidden = true; render(); toast(`Цель «${g.title}» удалена`, () => { goals.splice(i, 0, g); saveGoals(); render(); }); });
@@ -388,7 +435,7 @@ $('rForm').addEventListener('submit', e => {
     // В копии автономной версии лежат ещё и траты с планами.
     if (Array.isArray(data.entries)) data.entries.filter(x => x && x.id && x.title && x.ts).forEach(x => { if (!entries.some(o => o.id === x.id)) put({ id: String(x.id), kind: x.kind === 'plan' ? 'plan' : 'spend', title: String(x.title), amount: typeof x.amount === 'number' ? x.amount : null, cat: CAT_NAMES.includes(x.cat) ? x.cat : 'Другое', ts: x.ts, done: false }); });
     if (!Array.isArray(list) || list.some(g => !g.id || !g.title || !(g.target > 0) || typeof g.saved !== 'number')) throw 0;
-    const before = goals; goals = list.map(g => ({ id: String(g.id), title: String(g.title), target: g.target, saved: g.saved, art: g.art === 'car' ? 'car' : 'house' })); saveGoals(); $('rSheet').hidden = true; tab = 'goal'; render();
+    const before = goals; goals = list.map(g => ({ id: String(g.id), title: String(g.title), target: g.target, saved: g.saved, art: ART[g.art] ? g.art : 'house' })); saveGoals(); $('rSheet').hidden = true; tab = 'goal'; render();
     toast('Копилка восстановлена', () => { goals = before; saveGoals(); render(); });
   } catch { toast('Это не похоже на копию копилки. Проверьте текст.'); }
 });
@@ -444,6 +491,9 @@ function renderHero(month, sum, now) {
   $('monthName').textContent = 'Потрачено за ' + now.toLocaleDateString('ru-RU', { month: 'long' });
   const day = now.getDate(), last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   $('heroSub').textContent = sum ? `В среднем ${fmt(Math.round(sum / day))} в день` : `Осталось дней в месяце: ${last - day}`;
+  const open = goals.find(g => g.saved < g.target) || goals[0];
+  $('heroGoal').hidden = !open || tab === 'goal';
+  if (open) { $('heroImg').src = `img/${ART[open.art] ? open.art : 'house'}.jpg`; $('heroTitle').textContent = open.title; $('heroPct').textContent = Math.floor(Math.min(1, open.saved / open.target) * 100) + '%'; }
   const w = $('week'); w.replaceChildren();
   const vals = [];
   for (let i = 6; i >= 0; i--) { const d = new Date(now); d.setDate(d.getDate() - i); const k = dayKey(d.getTime()); vals.push({ d, v: entries.filter(e => e.kind === 'spend' && dayKey(e.ts) === k).reduce((s, e) => s + (e.amount || 0), 0) }); }
@@ -484,9 +534,9 @@ function render() {
     const newBtn = document.createElement('button'); newBtn.type = 'button'; newBtn.className = 'ghost'; newBtn.textContent = goals.length ? 'Новая цель' : 'Создать первую цель'; newBtn.addEventListener('click', () => openGoal(null));
     if (!goals.length) {
       const d = emptyState('Копите и стройте', ['в копилку 5000']);
-      const svg = document.createElement('div'); svg.className = 'goal'; svg.style.padding = '0'; svg.style.background = 'none'; svg.style.marginBottom = '10px'; svg.innerHTML = `<svg viewBox="0 0 320 200" role="img" aria-label="Контур будущего дома">${ART.house.parts.map(p => `<g class="part off">${p}</g>`).join('')}</svg>`;
+      const svg = document.createElement('div'); svg.className = 'photo'; svg.style.marginBottom = '12px'; svg.innerHTML = photoSvg('moto', 4, 4, 'demo'); svg.firstChild.setAttribute('aria-label', 'Пример: мотоцикл, собранный наполовину'); svg.firstChild.style.display = 'block'; svg.firstChild.style.width = '100%'; svg.firstChild.style.height = 'auto';
       d.insertBefore(svg, d.children[1]);
-      const txt = document.createElement('div'); txt.textContent = 'Дом или машина достраиваются с каждым взносом. Потом можно пополнять голосом:'; txt.style.marginBottom = '4px'; d.insertBefore(txt, d.children[2]);
+      const txt = document.createElement('div'); txt.textContent = 'Выберите дом, квартиру, Audi A7 или мотоцикл. С каждым взносом на фото оживает новая часть. Пополнять можно голосом:'; txt.style.marginBottom = '4px'; d.insertBefore(txt, d.children[2]);
       L.append(d, newBtn); return;
     }
     goals.forEach(g => L.append(goalCard(g)));
